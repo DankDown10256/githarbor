@@ -14,6 +14,6 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    echo "Flask dev env prêt"
+    echo "Flask development environment ready"
   '';
 }

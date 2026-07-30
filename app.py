@@ -56,7 +56,7 @@ def landing():
 @app.route("/auth/github/callback")
 def github_callback():
     if request.args.get("error"):
-        return "Connexion GitHub refusée.", 400
+        return "GitHub connection was denied.", 400
 
     if not secrets.compare_digest(
         request.args.get("state", ""),
