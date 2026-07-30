@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Vault | GitHarbor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-raised: #21262d;
+      --border: #30363d;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --blue: #58a6ff;
+      --green: #2ea043;
+      --green-hover: #3fb950;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 50% -20%, rgba(88, 166, 255, .12), transparent 33rem), var(--bg);
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(1080px, calc(100% - 48px)); margin: 0 auto; }
+
+    .site-header { height: 68px; border-bottom: 1px solid var(--border); background: rgba(13, 17, 23, .88); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 22px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+    .brand-mark { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 8px; background: linear-gradient(135deg, #58a6ff, #a371f7); color: #fff; }
+    .account { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
+    .avatar { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-raised); color: var(--blue); font-size: 12px; font-weight: 700; }
+
+    main { padding: 58px 0 88px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+    .eyebrow { margin: 0 0 10px; color: var(--blue); font-size: 13px; font-weight: 600; }
+    h1 { margin: 0; font-size: clamp(32px, 5vw, 42px); letter-spacing: -1.3px; }
+    .page-copy { max-width: 570px; margin: 13px 0 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+    .connection-state { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; color: #3fb950; font-size: 13px; white-space: nowrap; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 9px rgba(63, 185, 80, .7); }
+
+    .vault { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--surface); box-shadow: 0 20px 50px rgba(0, 0, 0, .24); }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); }
+    .filters { display: flex; flex: 1; align-items: center; gap: 10px; }
+    .search { width: min(310px, 100%); min-height: 36px; padding: 0 11px; color: var(--text); border: 1px solid var(--border); border-radius: 6px; outline: none; background: #0d1117; font-size: 13px; }
+    .search::placeholder { color: #6e7681; }
+    .search:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(88, 166, 255, .15); }
+    .filter-button { min-height: 36px; padding: 0 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; background: var(--surface-raised); font-size: 13px; }
+    .filter-button:hover { color: var(--text); background: #30363d; }
+
+    .repository-list { padding: 6px 16px 0; }
+    .list-header, .repository { display: grid; grid-template-columns: 26px minmax(0, 1fr) 130px 126px; align-items: center; column-gap: 16px; }
+    .list-header { min-height: 45px; color: #6e7681; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; }
+    .repository { min-height: 76px; border-bottom: 1px solid var(--border); }
+    .repository:last-child { border-bottom: 0; }
+    .repository:hover { background: rgba(110, 118, 129, .06); }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+    .repo-name { color: var(--blue); font-size: 14px; font-weight: 600; }
+    .repo-description { overflow: hidden; margin-top: 5px; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .repo-visibility { color: var(--muted); font-size: 12px; }
+    .backup-status { display: inline-flex; align-items: center; gap: 7px; color: #3fb950; font-size: 12px; }
+    .backup-status.pending { color: #d29922; }
+    .backup-status .status-dot { width: 6px; height: 6px; box-shadow: none; }
+    .backup-status.pending .status-dot { background: #d29922; }
+    .empty-list { padding: 44px 16px; color: var(--muted); text-align: center; font-size: 14px; }
+
+    .vault-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-top: 1px solid var(--border); background: #0d1117; }
+    .selection-note { color: var(--muted); font-size: 13px; }
+    .button { min-height: 38px; padding: 0 14px; border: 1px solid rgba(240, 246, 252, .1); border-radius: 6px; background: var(--green); color: #fff; font-size: 13px; font-weight: 600; }
+    .button:hover { background: var(--green-hover); }
+
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 42px; }
+    .info-card { padding: 19px; border: 1px solid var(--border); border-radius: 8px; background: rgba(22, 27, 34, .65); }
+    .info-icon { color: var(--blue); font-size: 17px; }
+    .info-card h2 { margin: 12px 0 6px; font-size: 15px; }
+    .info-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    @media (max-width: 700px) {
+      .container { width: min(100% - 32px, 1080px); }
+      main { padding-top: 42px; }
+      .page-heading { display: block; }
+      .connection-state { margin-top: 18px; }
+      .toolbar { align-items: stretch; flex-direction: column; }
+      .filters { width: 100%; }
+      .search { flex: 1; }
+      .list-header { display: none; }
+      .repository { grid-template-columns: 26px minmax(0, 1fr) auto; min-height: 82px; }
+      .repo-visibility { display: none; }
+      .backup-status { justify-self: end; }
+      .vault-footer { align-items: flex-start; flex-direction: column; }
+      .button { width: 100%; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 420px) {
+      .account span { display: none; }
+      .filter-button { display: none; }
+      .repository-list { padding: 6px 12px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a class="brand" href="/" aria-label="GitHarbor home"><span class="brand-mark" aria-hidden="true">⌘</span> GitHarbor</a>
+      <div class="account" aria-label="Connected GitHub account">
+        <span>{{ session.get('github_user', 'GitHub account') }}</span>
+        <span class="avatar" aria-hidden="true">GH</span>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">YOUR VAULT</p>
+        <h1 id="page-title">Choose repositories to protect.</h1>
+        <p class="page-copy">Select the repositories GitHarbor should mirror. Your backups stay on your own infrastructure.</p>
+      </div>
+      <div class="connection-state"><span class="status-dot"></span> GitHub connected</div>
+    </section>
+
+    <form class="vault" method="post" action="/repository">
+      <div class="toolbar">
+        <div class="filters">
+          <input class="search" type="search" placeholder="Find a repository…" aria-label="Find a repository">
+          <button class="filter-button" type="button">All repositories ▾</button>
+        </div>
+      </div>
+
+      <div class="repository-list">
+        <div class="list-header"><span><input type="checkbox" aria-label="Select all repositories"></span><span>Repository</span><span>Visibility</span><span>Backup status</span></div>
+        {% if repositories %}
+          {% for repository in repositories %}
+            <label class="repository">
+              <span><input type="checkbox" name="repositories" value="{{ repository.id }}" {% if repository.id in protected_repository_ids %}checked{% endif %}></span>
+              <span>
+                <span class="repo-name">{{ repository.name }}</span>
+                {% if repository.description %}<span class="repo-description">{{ repository.description }}</span>{% endif %}
+              </span>
+              <span class="repo-visibility">{{ repository.visibility | capitalize }}</span>
+              {% if repository.id in protected_repository_ids %}
+                <span class="backup-status">
+                <span class="status-dot"></span> Protected
+                </span>
+              {% else %}
+                <span class="backup-status pending">
+                <span class="status-dot"></span> Not protected
+                </span>
+              {% endif %}
+            </label>
+          {% endfor %}
+        {% else %}
+          <div class="empty-list">No repositories to display.</div>
+        {% endif %}
+      </div>
+
+      <div class="vault-footer">
+        <span class="selection-note">Select the repositories you want GitHarbor to mirror every 24 hours.</span>
+        <button class="button" type="submit">Protect selected repositories</button>
+      </div>
+    </form>
+
+    <section class="info-grid" aria-label="Backup information">
+      <article class="info-card"><div class="info-icon" aria-hidden="true">↻</div><h2>Daily syncs</h2><p>Selected repositories are mirrored automatically every 24 hours.</p></article>
+      <article class="info-card"><div class="info-icon" aria-hidden="true">⌁</div><h2>Stored locally</h2><p>Backups are kept on the infrastructure you control.</p></article>
+      <article class="info-card"><div class="info-icon" aria-hidden="true">✓</div><h2>Clear history</h2><p>Check each repository’s protection status from one place.</p></article>
+    </section>
+  </main>
+</body>
+</html>

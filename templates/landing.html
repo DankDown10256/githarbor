@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GitHarbor keeps a secure, self-hosted backup of your repositories.">
+  <title>GitHarbor | Your secure, self-hosted repo vault</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-raised: #21262d;
+      --border: #30363d;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --accent: #2ea043;
+      --accent-hover: #3fb950;
+      --blue: #58a6ff;
+      --purple: #a371f7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 50% -15%, rgba(88, 166, 255, .14), transparent 32rem),
+        var(--bg);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+
+    .site-header {
+      height: 72px;
+      border-bottom: 1px solid rgba(48, 54, 61, .7);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      gap: 24px;
+    }
+
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+
+    .brand-mark {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 8px;
+      box-shadow: 0 0 24px rgba(88, 166, 255, .25);
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 26px; color: var(--muted); font-size: 14px; }
+    .nav-links a:hover { color: var(--text); }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid rgba(240, 246, 252, .1);
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button-primary { background: var(--accent); border-color: rgba(240, 246, 252, .1); color: #fff; }
+    .button-primary:hover { background: var(--accent-hover); }
+    .button-secondary { background: var(--surface-raised); border-color: var(--border); }
+    .button-secondary:hover { background: #30363d; }
+
+    .hero { padding: 108px 0 86px; text-align: center; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 23px;
+      padding: 6px 11px;
+      color: #c9d1d9;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(22, 27, 34, .72);
+      font-size: 13px;
+    }
+
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-hover); box-shadow: 0 0 8px var(--accent-hover); }
+
+    h1 {
+      max-width: 790px;
+      margin: 0 auto;
+      font-size: clamp(42px, 6vw, 72px);
+      line-height: 1.05;
+      letter-spacing: -2.8px;
+    }
+
+    h1 span { color: var(--blue); }
+
+    .hero-copy {
+      max-width: 610px;
+      margin: 24px auto 32px;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.55;
+    }
+
+    .hero-actions { display: flex; justify-content: center; gap: 12px; }
+    .hero-actions .button { min-height: 46px; padding: 0 21px; }
+    .hero-note { margin: 16px 0 0; color: var(--muted); font-size: 12px; }
+
+    .product-frame {
+      overflow: hidden;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0d1117;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .42), 0 0 0 1px rgba(240, 246, 252, .03);
+      text-align: left;
+    }
+
+    .window-bar { display: flex; align-items: center; gap: 7px; height: 42px; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .window-dot { width: 10px; height: 10px; border-radius: 50%; background: #484f58; }
+    .window-title { margin-left: 7px; color: var(--muted); font-size: 12px; }
+    .dashboard { display: grid; grid-template-columns: 200px 1fr; min-height: 338px; }
+
+    .sidebar { padding: 19px 12px; border-right: 1px solid var(--border); background: #0d1117; }
+    .sidebar-label { display: block; margin: 0 8px 11px; color: #6e7681; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    .sidebar-item { display: flex; align-items: center; gap: 9px; padding: 8px; color: var(--muted); border-radius: 6px; font-size: 13px; }
+    .sidebar-item.active { color: var(--text); background: var(--surface-raised); }
+    .sidebar-icon { width: 14px; color: var(--blue); text-align: center; }
+
+    .dashboard-main { padding: 28px; }
+    .dashboard-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    .dashboard-heading h2 { margin: 0 0 6px; font-size: 20px; letter-spacing: -.3px; }
+    .dashboard-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+    .sync-state { display: flex; align-items: center; gap: 7px; color: #3fb950; font-size: 12px; white-space: nowrap; }
+
+    .repository-list { border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+    .repository { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 18px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .repository:last-child { border-bottom: 0; }
+    .repo-name { color: var(--blue); font-size: 14px; font-weight: 600; }
+    .repo-meta { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .repo-size { color: var(--muted); font-size: 12px; }
+    .badge { padding: 3px 7px; color: #3fb950; border: 1px solid rgba(46, 160, 67, .4); border-radius: 999px; background: rgba(46, 160, 67, .1); font-size: 11px; font-weight: 600; }
+
+    .features { padding: 118px 0; }
+    .section-intro { max-width: 610px; margin: 0 auto 45px; text-align: center; }
+    .section-intro h2 { margin: 0 0 14px; font-size: clamp(30px, 4vw, 42px); letter-spacing: -1.4px; }
+    .section-intro p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .feature-card { padding: 25px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(145deg, rgba(33, 38, 45, .72), rgba(22, 27, 34, .68)); }
+    .feature-icon { display: grid; width: 38px; height: 38px; place-items: center; margin-bottom: 19px; color: var(--blue); border: 1px solid var(--border); border-radius: 7px; background: var(--surface); font-size: 18px; }
+    .feature-card h3 { margin: 0 0 9px; font-size: 17px; }
+    .feature-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+    .site-footer { padding: 26px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+    .footer-content { display: flex; justify-content: space-between; gap: 20px; }
+
+    @media (max-width: 720px) {
+      .container { width: min(100% - 32px, 1120px); }
+      .nav-links a:not(.button) { display: none; }
+      .hero { padding: 75px 0 60px; }
+      .hero-copy { font-size: 17px; }
+      .dashboard { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .dashboard-main { padding: 20px; }
+      .repository { grid-template-columns: 1fr auto; gap: 10px; }
+      .repo-size { display: none; }
+      .features { padding: 80px 0; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 420px) {
+      .nav { gap: 12px; }
+      .brand { font-size: 18px; }
+      .button { padding: 0 12px; }
+      .hero-actions { flex-direction: column; }
+      .hero-actions .button { width: 100%; }
+      .dashboard-heading { display: block; }
+      .sync-state { margin-top: 12px; }
+      .footer-content { flex-direction: column; gap: 7px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="GitHarbor home">
+        <span class="brand-mark" aria-hidden="true">⌘</span>
+        GitHarbor
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#security">Security</a>
+        <a href="#get-started" class="button button-secondary">Get started</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="container hero" aria-labelledby="hero-title">
+      <div class="eyebrow"><span class="status-dot"></span> Your repositories, safely docked</div>
+      <h1 id="hero-title">A secure harbor for <span>every repository.</span></h1>
+      <p class="hero-copy">GitHarbor creates dependable, self-hosted backups of your repositories every 24 hours. Keep your source code where it belongs: under your control.</p>
+      <div class="hero-actions" id="get-started">
+        <a class="button button-primary" href="/protect">Protect your repositories</a>
+        <a class="button button-secondary" href="#features">Explore features</a>
+      </div>
+      <p class="hero-note">Self-hosted · Private by design · No vendor lock-in</p>
+    </section>
+
+    <section class="container product-frame" id="dashboard" aria-label="GitHarbor dashboard preview">
+      <div class="window-bar">
+        <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
+        <span class="window-title">githarbor.local / dashboard</span>
+      </div>
+      <div class="dashboard">
+        <aside class="sidebar" aria-label="Dashboard navigation">
+          <span class="sidebar-label">Workspace</span>
+          <div class="sidebar-item active"><span class="sidebar-icon">◈</span> Overview</div>
+          <div class="sidebar-item"><span class="sidebar-icon">⌘</span> Repositories</div>
+          <div class="sidebar-item"><span class="sidebar-icon">◷</span> Backup history</div>
+          <span class="sidebar-label" style="margin-top: 26px;">Settings</span>
+          <div class="sidebar-item"><span class="sidebar-icon">⚙</span> Configuration</div>
+        </aside>
+        <div class="dashboard-main">
+          <div class="dashboard-heading">
+            <div><h2>Repository backups</h2><p>All repositories are protected and up to date.</p></div>
+            <span class="sync-state"><span class="status-dot"></span> Last sync: just now</span>
+          </div>
+          <div class="repository-list">
+            <div class="repository"><div><div class="repo-name">acme / storefront</div><div class="repo-meta">Backed up 2 minutes ago</div></div><span class="repo-size">428 MB</span><span class="badge">Protected</span></div>
+            <div class="repository"><div><div class="repo-name">acme / mobile-app</div><div class="repo-meta">Backed up 2 minutes ago</div></div><span class="repo-size">196 MB</span><span class="badge">Protected</span></div>
+            <div class="repository"><div><div class="repo-name">acme / infrastructure</div><div class="repo-meta">Backed up yesterday</div></div><span class="repo-size">82 MB</span><span class="badge">Protected</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container features" id="features" aria-labelledby="features-title">
+      <div class="section-intro">
+        <h2 id="features-title">Backups you never need to think about.</h2>
+        <p>A focused, reliable home for the code your team depends on.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card" id="security">
+          <div class="feature-icon" aria-hidden="true">♢</div>
+          <h3>Yours, by design</h3>
+          <p>Run GitHarbor on your own infrastructure and retain complete ownership of every backup.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">↻</div>
+          <h3>Automatic daily backups</h3>
+          <p>Your repositories are mirrored on a dependable schedule, so the latest version is always within reach.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">✓</div>
+          <h3>Simple visibility</h3>
+          <p>See the health of every repository at a glance and know exactly when it was last protected.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-content"><span>GitHarbor</span><span>Secure, self-hosted repository backups.</span></div>
+  </footer>
+</body>
+</html>
