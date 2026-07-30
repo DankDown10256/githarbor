@@ -2,7 +2,7 @@
 
 GitHarbor is a self-hosted application for connecting a GitHub account, selecting repositories, and keeping backup information on your own server.
 
-## Prérequis
+## Prerequisites
 
 - A GitHub account
 - A GitHub OAuth App created for the GitHarbor instance
@@ -15,7 +15,7 @@ Run the installation script:
 ./scripts/installation.sh
 ```
 
-The script creates a local `.env` file, ignored by Git, and asks for the OAuth App credentials when needed.
+The script creates a local `.env` file, ignored by Git, and asks for the OAuth App Client ID when needed.
 
 Then start the Flask web server
 
@@ -31,31 +31,21 @@ It stores the following variables:
 FLASK_SECRET_KEY=...
 TOKEN_ENCRYPTION_KEY=...
 GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
 ```
 
-`FLASK_SECRET_KEY` and `TOKEN_ENCRYPTION_KEY` are generated automatically. GitHub provides the Client ID and Client Secret.
+`FLASK_SECRET_KEY` and `TOKEN_ENCRYPTION_KEY` are generated automatically. GitHub provides the Client ID.
 
-Never commit the `.env` file or share `GITHUB_CLIENT_SECRET` or `TOKEN_ENCRYPTION_KEY`.
+Never commit the `.env` file or share `TOKEN_ENCRYPTION_KEY`.
 
 ## Create a GitHub OAuth App
 
 1. In GitHub, open **Settings → Developer settings → OAuth Apps**.
 2. Click **New OAuth App**.
-3. For a local installation running on port `90`, use:
+3. Enable **Device Flow** in the OAuth App settings, then save the application.
+4. Copy the **Client ID**.
+5. Run `./scripts/installation.sh` and enter the Client ID when prompted.
 
-   ```text
-   Homepage URL: http://127.0.0.1:90
-   Authorization callback URL: http://127.0.0.1:90/auth/github/callback
-   ```
-
-4. After creating the app, copy the **Client ID**.
-5. Generate a **Client Secret** and copy it immediately: GitHub only displays it once.
-6. Run `./scripts/installation.sh` and enter both values when prompted.
-
-For a public instance, replace `http://127.0.0.1:90` with that instance's HTTPS URL in both fields.
-
-Each administrator hosting their own instance must create their own GitHub OAuth App. Do not distribute a shared Client Secret.
+GitHarbor uses the Device Flow, so it does not use an authorization callback URL or a Client Secret. Each administrator hosting their own instance must create their own GitHub OAuth App.
 
 ## Start the application
 
@@ -77,7 +67,7 @@ It is local to the instance and ignored by Git. OAuth access tokens are encrypte
 
 The application currently lets you:
 
-- connect a GitHub account with OAuth;
+- connect a GitHub account with the GitHub Device Flow;
 - retrieve repositories accessible by that account;
 - store selected repositories in the local database.
 

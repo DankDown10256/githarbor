@@ -1,10 +1,10 @@
+from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
 import os
 import secrets
 import requests
 from cryptography.fernet import Fernet
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 
@@ -46,6 +46,16 @@ class MirroredRepository(db.Model):
         ),
     )
 
+
+class DeviceAuthorization(db.Model):
+    id = db.Column(db.String(64), primary_key=True)
+    encrypted_device_code = db.Column(db.Text, nullable=False)
+    user_code = db.Column(db.String(32), nullable=False)
+    verification_uri = db.Column(db.String(255), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    interval = db.Column(db.Integer, nullable=False)
+
+
 with app.app_context():
     db.create_all()
 
@@ -53,34 +63,82 @@ with app.app_context():
 def landing():
     return render_template("landing.html")
 
-@app.route("/auth/github/callback")
-def github_callback():
-    if request.args.get("error"):
-        return "GitHub connection was denied.", 400
+@app.route("/github/oauth", methods=["GET"])
+def github_oauth():
+    response = requests.post(
+        "https://github.com/login/device/code",
+        headers={"Accept": "application/json"},
+        data={
+            "client_id": os.environ["GITHUB_CLIENT_ID"],
+            "scope": "read:user repo",
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    device_data = response.json()
 
-    if not secrets.compare_digest(
-        request.args.get("state", ""),
-        session.get("oauth_state", "")
-    ):
-        abort(400)
+    authorization = DeviceAuthorization(
+        id=secrets.token_urlsafe(32),
+        encrypted_device_code=token_cipher.encrypt(device_data["device_code"].encode()).decode(),
+        user_code=device_data["user_code"],
+        verification_uri=device_data["verification_uri"],
+        expires_at=datetime.utcnow() + timedelta(seconds=device_data["expires_in"]),
+        interval=device_data["interval"],
+    )
+    db.session.add(authorization)
+    db.session.commit()
 
-    code = request.args.get("code")
-    if not code:
-        abort(400)
+    session["device_authorization_id"] = authorization.id
+    return render_template(
+        "device_authorization.html",
+        user_code=authorization.user_code,
+        verification_uri=authorization.verification_uri,
+        interval=authorization.interval,
+    )
 
-    token_response = requests.post(
+
+@app.route("/github/oauth/status", methods=["POST"])
+def github_oauth_status():
+    authorization_id = session.get("device_authorization_id")
+    authorization = db.session.get(DeviceAuthorization, authorization_id)
+
+    if authorization is None:
+        return jsonify(status="expired"), 400
+
+    if datetime.utcnow() >= authorization.expires_at:
+        db.session.delete(authorization)
+        db.session.commit()
+        session.pop("device_authorization_id", None)
+        return jsonify(status="expired"), 400
+
+    device_code = token_cipher.decrypt(authorization.encrypted_device_code.encode()).decode()
+    response = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
         data={
             "client_id": os.environ["GITHUB_CLIENT_ID"],
-            "client_secret": os.environ["GITHUB_CLIENT_SECRET"],
-            "code": code,
-            "redirect_uri": url_for("github_callback", _external=True),
+            "device_code": device_code,
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
         },
         timeout=10,
     )
-    token_response.raise_for_status()
-    access_token = token_response.json()["access_token"]
+    token_data = response.json()
+
+    if token_data.get("error") == "authorization_pending":
+        return jsonify(status="pending", interval=authorization.interval)
+
+    if token_data.get("error") == "slow_down":
+        authorization.interval += 5
+        db.session.commit()
+        return jsonify(status="pending", interval=authorization.interval)
+
+    if token_data.get("error"):
+        db.session.delete(authorization)
+        db.session.commit()
+        session.pop("device_authorization_id", None)
+        return jsonify(status="failed", error=token_data["error"]), 400
+
+    access_token = token_data["access_token"]
     user_response = requests.get(
         "https://api.github.com/user",
         headers={
@@ -106,26 +164,13 @@ def github_callback():
         account.login = github_user["login"]
         account.encrypted_access_token = encrypted_access_token
 
+    db.session.delete(authorization)
     db.session.commit()
     session["github_user"] = github_user["login"]
     session["github_account_id"] = account.id
-    session.pop("oauth_state", None)
-    return redirect("/repository")
+    session.pop("device_authorization_id", None)
 
-@app.route("/github/oauth", methods=["GET"])
-def github_oauth():
-    state = secrets.token_urlsafe(32)
-    session["oauth_state"] = state
-    params = {
-        "client_id": os.environ["GITHUB_CLIENT_ID"],
-        "redirect_uri": url_for("github_callback", _external=True),
-        "scope": "read:user repo",
-        "state": state,
-    }
-
-    github_url = "https://github.com/login/oauth/authorize?" + urlencode(params)
-
-    return redirect(github_url)
+    return jsonify(status="authorized", redirect_url=url_for("repository"))
 
 @app.route("/repository", methods=["GET", "POST"])
 def repository():

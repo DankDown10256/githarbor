@@ -26,9 +26,4 @@ if ! grep -q '^GITHUB_CLIENT_ID=' "$env_file"; then
   printf 'GITHUB_CLIENT_ID=%s\n' "$github_client_id" >> "$env_file"
 fi
 
-if ! grep -q '^GITHUB_CLIENT_SECRET=' "$env_file"; then
-  read -r -s -p "GitHub OAuth Client Secret: " github_client_secret
-  printf '\nGITHUB_CLIENT_SECRET=%s\n' "$github_client_secret" >> "$env_file"
-fi
-
 echo "Configuration saved in .env."
