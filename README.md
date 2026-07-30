@@ -4,25 +4,26 @@ GitHarbor is a self-hosted application for connecting a GitHub account, selectin
 
 ## Prérequis
 
-- [Nix](https://nixos.org/download/)
 - A GitHub account
 - A GitHub OAuth App created for the GitHarbor instance
 
 ## Installation
 
-Open the development environment:
-
-```bash
-nix-shell
-```
-
-Then run the installation script:
+Run the installation script:
 
 ```bash
 ./scripts/installation.sh
 ```
 
 The script creates a local `.env` file, ignored by Git, and asks for the OAuth App credentials when needed.
+
+Then start the Flask web server
+
+```bash
+python3 app.py
+```
+
+The web server will start at port 90.
 
 It stores the following variables:
 
