@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from os.path import isdir
 from pathlib import Path
 import os
 import secrets
@@ -7,6 +8,9 @@ from cryptography.fernet import Fernet
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+import click
+from pathlib import Path
+import subprocess
 
 load_dotenv()
 
@@ -258,6 +262,31 @@ def protect():
     if "github_user" in session:
         return redirect("/repository")
     return redirect("/github/oauth")
+
+@app.cli.command("run_backups")
+def run_backups():
+    repositories = MirroredRepository.query.filter_by(enabled=True).all()
+
+    for repository in repositories:
+        click.echo(f"Backing up {repository.full_name}")
+        mirror_path = (
+            Path("data/mirrors")
+            / str(repository.github_account_id)
+            / f"{repository.github_repository_id}.git"
+        )  
+        if mirror_path.is_dir():
+            print("Repo already cloned updating...")
+            subprocess.run(
+                ["git", "-C", str(mirror_path), "remote", "update", "--prune"],
+                check=True,
+            )
+        else:
+            print("Repo doesn't found cloning it...")
+            mirror_path.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                ["git", "clone", "--mirror", repository.clone_url, str(mirror_path)],
+                check=True,
+            )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=90, debug=True)
