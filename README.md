@@ -26,7 +26,7 @@ Private repository mirroring is not implemented yet.
 Clone the project and enter its directory:
 
 ```bash
-git clone <repository-url> githarbor
+git clone https://github.com/DankDown10256/githarbor
 cd githarbor
 ```
 
