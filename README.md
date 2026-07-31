@@ -14,7 +14,8 @@ Private repository mirroring is not implemented yet.
 
 ## Requirements
 
-- [Nix](https://nixos.org/download/) with `nix-shell`;
+- Python 3.8 or later;
+- `pip` and `venv`;
 - Git installed on the host;
 - a GitHub account;
 - a GitHub OAuth App with Device Flow enabled;
@@ -29,10 +30,17 @@ git clone <repository-url> githarbor
 cd githarbor
 ```
 
-Enter the Nix development environment:
+Create and activate a virtual environment:
 
 ```bash
-nix-shell
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install the Python dependencies:
+
+```bash
+pip install Flask Flask-SQLAlchemy cryptography python-dotenv requests
 ```
 
 Run the installation script:
@@ -64,9 +72,17 @@ GITHUB_CLIENT_ID=...
 
 GitHarbor uses Device Flow, so it does not use an authorization callback URL or a Client Secret. This makes the setup suitable for self-hosted instances without a public domain.
 
+### Optional: Nix shell
+
+If you use Nix, the repository also includes a development shell:
+
+```bash
+nix-shell
+```
+
 ## Run the web application
 
-From the Nix shell:
+From the activated virtual environment:
 
 ```bash
 python app.py
@@ -78,7 +94,7 @@ Click **Protect your repositories**, follow the displayed GitHub Device Flow ins
 
 ## Backups
 
-Selected repositories are stored in SQLite with an `enabled` flag. Run a backup manually from the Nix shell:
+Selected repositories are stored in SQLite with an `enabled` flag. Run a backup manually from the activated virtual environment:
 
 ```bash
 flask --app app run_backups
@@ -105,7 +121,7 @@ git --git-dir=data/mirrors/<github-account-id>/<github-repository-id>.git ls-tre
 
 ## Schedule daily backups with systemd
 
-The included script creates and enables a system-wide service and timer. Run it from the Nix shell as the user who owns the GitHarbor installation:
+The included script creates and enables a system-wide service and timer. Run it from the activated virtual environment as the user who owns the GitHarbor installation:
 
 ```bash
 ./scripts/install-systemd-timer.sh
