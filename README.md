@@ -88,7 +88,7 @@ From the activated virtual environment:
 python app.py
 ```
 
-The application listens on port `90`. For a local installation, open [http://127.0.0.1:90](http://127.0.0.1:90).
+The application listens on port `1024`. For a local installation, open [http://127.0.0.1:1024](http://127.0.0.1:1024).
 
 Click **Protect your repositories**, follow the displayed GitHub Device Flow instructions, then select the repositories to protect.
 
