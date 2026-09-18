@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from os.path import isdir
-from pathlib import Path
 import os
 import secrets
 import requests
@@ -86,7 +85,7 @@ def github_oauth():
         encrypted_device_code=token_cipher.encrypt(device_data["device_code"].encode()).decode(),
         user_code=device_data["user_code"],
         verification_uri=device_data["verification_uri"],
-        expires_at=datetime.utcnow() + timedelta(seconds=device_data["expires_in"]),
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=device_data["expires_in"]),
         interval=device_data["interval"],
     )
     db.session.add(authorization)
@@ -248,7 +247,7 @@ def repository():
                     saved_repo.full_name = repo["full_name"]
                     saved_repo.clone_url = repo["clone_url"]
                     saved_repo.enabled = True
-        
+
             elif saved_repo is not None:
                 saved_repo.enabled = False
 
@@ -273,7 +272,7 @@ def run_backups():
             Path("data/mirrors")
             / str(repository.github_account_id)
             / f"{repository.github_repository_id}.git"
-        )  
+        )
         if mirror_path.is_dir():
             print("Repo already cloned updating...")
             subprocess.run(
