@@ -210,7 +210,6 @@ def repository():
                 "visibility", "private" if repository["private"] else "public"
             ),
         }
-        for repository in response.json()
     ]
 
     protected_repository_ids = {
