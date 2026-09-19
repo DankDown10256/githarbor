@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from os.path import isdir
 import os
 import secrets
 import requests
