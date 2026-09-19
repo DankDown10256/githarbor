@@ -108,7 +108,7 @@ def github_oauth_status():
     if authorization is None:
         return jsonify(status="expired"), 400
 
-    if datetime.utcnow() >= authorization.expires_at:
+    if datetime.now(timezone.utc) >= authorization.expires_at:
         db.session.delete(authorization)
         db.session.commit()
         session.pop("device_authorization_id", None)
