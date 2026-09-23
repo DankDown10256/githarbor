@@ -13,7 +13,9 @@
     h1 { margin: 0; font-size: 25px; letter-spacing: -.5px; }
     p { color: var(--muted); line-height: 1.55; }
     .code { margin: 25px 0 18px; padding: 17px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 28px; font-weight: 700; letter-spacing: .1em; }
-    a { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; padding: 0 15px; border: 1px solid rgba(240, 246, 252, .1); border-radius: 6px; background: #2ea043; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .btn-primary { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; padding: 0 15px; border: 1px solid rgba(240, 246, 252, .1); border-radius: 6px; background: #2ea043; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .btn-secondary { display: inline-block; margin-top: 15px; color: var(--muted); font-size: 13px; text-decoration: underline; }
+    .btn-secondary:hover { color: var(--text); }
     .state { min-height: 20px; margin: 20px 0 0; font-size: 13px; }
   </style>
 </head>
@@ -23,8 +25,9 @@
     <h1>Connect your GitHub account</h1>
     <p>Open GitHub, enter this code, and approve access for GitHarbor.</p>
     <div class="code">{{ user_code }}</div>
-    <a href="{{ verification_uri }}" target="_blank" rel="noopener">Open GitHub</a>
+    <a href="{{ verification_uri }}" target="_blank" rel="noopener" class="btn-primary">Open GitHub</a>
     <p class="state" id="state">Waiting for authorization…</p>
+    <a href="/accounts" class="btn-secondary">← Back to Accounts</a>
   </main>
   <script>
     const statusUrl = "/github/oauth/status";

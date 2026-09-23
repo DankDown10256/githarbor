@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Accounts | GitHarbor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-raised: #21262d;
+      --border: #30363d;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --blue: #58a6ff;
+      --green: #2ea043;
+      --green-hover: #3fb950;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 50% -20%, rgba(88, 166, 255, .12), transparent 33rem), var(--bg);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .container { width: min(1080px, calc(100% - 48px)); margin: 0 auto; }
+
+    .site-header { height: 68px; border-bottom: 1px solid var(--border); background: rgba(13, 17, 23, .88); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 22px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+    .brand-mark { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 8px; background: linear-gradient(135deg, #58a6ff, #a371f7); color: #fff; }
+    .account { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
+    .avatar { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-raised); color: var(--blue); font-size: 12px; font-weight: 700; }
+
+    main { padding: 58px 0 88px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+    .eyebrow { margin: 0 0 10px; color: var(--blue); font-size: 13px; font-weight: 600; }
+    h1 { margin: 0; font-size: clamp(32px, 5vw, 42px); letter-spacing: -1.3px; }
+    .page-copy { max-width: 570px; margin: 13px 0 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 32px; }
+    
+    .account-card {
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      transition: border-color .18s ease;
+    }
+    .account-card:hover { border-color: var(--blue); }
+    
+    .account-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .account-info { display: flex; align-items: center; gap: 12px; }
+    .account-avatar {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      color: var(--blue);
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .account-details h2 { margin: 0; font-size: 18px; font-weight: 600; }
+    .account-details span { color: var(--muted); font-size: 13px; }
+    
+    .current-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      color: #fff;
+      background: var(--green);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .current-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    
+    .account-stats { display: flex; gap: 20px; color: var(--muted); font-size: 13px; }
+    .stat { display: flex; align-items: center; gap: 5px; }
+    .stat-count { color: var(--text); font-weight: 600; }
+    
+    .account-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background .18s ease, border-color .18s ease;
+    }
+    .button:hover { background: var(--surface-raised); }
+    .button-primary { background: var(--green); border-color: var(--green); color: #fff; }
+    .button-primary:hover { background: var(--green-hover); border-color: var(--green-hover); }
+    .button-secondary { background: var(--surface-raised); border-color: var(--border); color: var(--text); }
+    .button-secondary:hover { background: #30363d; }
+
+    .add-account-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      padding: 24px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .add-account-card:hover { border-color: var(--blue); color: var(--text); }
+    .add-icon { font-size: 32px; margin-bottom: 12px; }
+    .add-label { font-size: 14px; font-weight: 600; }
+
+    @media (max-width: 700px) {
+      .container { width: min(100% - 32px, 1080px); }
+      main { padding-top: 42px; }
+      .page-heading { display: block; }
+      .accounts-grid { grid-template-columns: 1fr; }
+      .account-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 420px) {
+      .account { display: none; }
+      .button { padding: 0 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a class="brand" href="/" aria-label="GitHarbor home"><span class="brand-mark" aria-hidden="true">⌘</span> GitHarbor</a>
+      <div class="account" aria-label="Connected GitHub account">
+        <span>{{ session.get('github_user', 'GitHub account') }}</span>
+        <span class="avatar" aria-hidden="true">GH</span>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">YOUR ACCOUNTS</p>
+        <h1 id="page-title">Manage your GitHub accounts</h1>
+        <p class="page-copy">Connect multiple GitHub accounts and switch between them to manage different sets of repositories.</p>
+      </div>
+    </section>
+
+    <div class="accounts-grid">
+      {% for account in accounts %}
+      <article class="account-card" aria-labelledby="account-{{ account.id }}-name">
+        <div class="account-header">
+          <div class="account-info">
+            <div class="account-avatar" aria-hidden="true">{{ account.login[0:2] | upper }}</div>
+            <div class="account-details">
+              <h2 id="account-{{ account.id }}-name">{{ account.login }}</h2>
+              <span>GitHub ID: {{ account.github_id }}</span>
+            </div>
+          </div>
+          {% if account.is_current %}
+          <span class="current-badge"><span class="dot"></span> Current</span>
+          {% endif %}
+        </div>
+        <div class="account-stats">
+          <span class="stat">
+            <span class="stat-count">{{ account.protected_repos_count }}</span>
+            <span>repositories protected</span>
+          </span>
+        </div>
+        <div class="account-actions">
+          {% if not account.is_current %}
+          <a class="button button-primary" href="{{ url_for('switch_account', account_id=account.id) }}">
+            Switch to account
+          </a>
+          {% endif %}
+          <a class="button button-secondary" href="{{ url_for('repository') }}">
+            View repositories
+          </a>
+        </div>
+      </article>
+      {% endfor %}
+
+      <a class="add-account-card" href="{{ url_for('connect_new_account') }}" aria-label="Add new GitHub account">
+        <span class="add-icon" aria-hidden="true">+</span>
+        <span class="add-label">Add another account</span>
+      </a>
+    </div>
+
+    <div style="margin-top: 32px; text-align: center;">
+      <a class="button button-secondary" href="{{ url_for('logout') }}" style="color: var(--muted);">
+        Sign out
+      </a>
+    </div>
+  </main>
+</body>
+</html>

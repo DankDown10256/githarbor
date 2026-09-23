@@ -112,9 +112,14 @@
   <header class="site-header">
     <nav class="container nav" aria-label="Main navigation">
       <a class="brand" href="/" aria-label="GitHarbor home"><span class="brand-mark" aria-hidden="true">⌘</span> GitHarbor</a>
-      <div class="account" aria-label="Connected GitHub account">
-        <span>{{ session.get('github_user', 'GitHub account') }}</span>
-        <span class="avatar" aria-hidden="true">GH</span>
+      <div class="nav-right" style="display: flex; align-items: center; gap: 16px;">
+        <a href="/accounts" class="button button-secondary" style="font-size: 13px; padding: 6px 12px; min-height: 34px;">
+          ← All Accounts
+        </a>
+        <div class="account" aria-label="Connected GitHub account">
+          <span>{{ session.get('github_user', 'GitHub account') }}</span>
+          <span class="avatar" aria-hidden="true">GH</span>
+        </div>
       </div>
     </nav>
   </header>
