@@ -63,6 +63,9 @@ with app.app_context():
 
 @app.route("/", methods=["GET"])
 def landing():
+    # If user is logged in, redirect to accounts page
+    if "github_account_id" in session:
+        return redirect(url_for("accounts"))
     return render_template("landing.html")
 
 @app.route("/github/oauth", methods=["GET"])
@@ -172,6 +175,10 @@ def github_oauth_status():
     session["github_account_id"] = account.id
     session.pop("device_authorization_id", None)
 
+    # Redirect to the stored next path, or repository as default
+    next_url = session.pop("next_after_auth", None)
+    if next_url:
+        return jsonify(status="authorized", redirect_url=next_url)
     return jsonify(status="authorized", redirect_url=url_for("repository"))
 
 @app.route("/repository", methods=["GET", "POST"])
@@ -210,6 +217,7 @@ def repository():
                 "visibility", "private" if repository["private"] else "public"
             ),
         }
+        for repository in repos_data
     ]
 
     protected_repository_ids = {
@@ -256,9 +264,68 @@ def repository():
 
 @app.route("/protect", methods=["GET"])
 def protect():
-    if "github_user" in session:
-        return redirect("/repository")
-    return redirect("/github/oauth")
+    # Store the intended redirect path for after auth (if not already set)
+    if "next_after_auth" not in session:
+        session["next_after_auth"] = url_for("accounts")
+    if "github_account_id" in session:
+        return redirect(url_for("accounts"))
+    return redirect(url_for("github_oauth"))
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("landing"))
+
+
+@app.route("/accounts", methods=["GET"])
+def accounts():
+    if "github_account_id" not in session:
+        return redirect(url_for("protect"))
+    
+    all_accounts = GitHubAccount.query.all()
+    current_account_id = session.get("github_account_id")
+    
+    accounts_list = []
+    for account in all_accounts:
+        protected_count = MirroredRepository.query.filter_by(
+            github_account_id=account.id,
+            enabled=True
+        ).count()
+        
+        accounts_list.append({
+            "id": account.id,
+            "login": account.login,
+            "github_id": account.github_id,
+            "is_current": account.id == current_account_id,
+            "protected_repos_count": protected_count,
+        })
+    
+    if current_account_id is None and accounts_list:
+        session["github_account_id"] = accounts_list[0]["id"]
+        session["github_user"] = accounts_list[0]["login"]
+        return redirect(url_for("accounts"))
+    
+    return render_template("accounts.html", accounts=accounts_list)
+
+
+@app.route("/accounts/switch/<int:account_id>", methods=["GET"])
+def switch_account(account_id):
+    account = db.session.get(GitHubAccount, account_id)
+    if account is None:
+        return redirect(url_for("accounts"))
+    
+    session["github_account_id"] = account.id
+    session["github_user"] = account.login
+    
+    return redirect(url_for("repository"))
+
+
+@app.route("/accounts/connect", methods=["GET"])
+def connect_new_account():
+    session["next_after_auth"] = url_for("accounts")
+    return redirect(url_for("github_oauth"))
+
 
 @app.cli.command("run_backups")
 def run_backups():
