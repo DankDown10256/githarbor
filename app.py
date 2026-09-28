@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import click
 from pathlib import Path
 import subprocess
+from sqlalchemy import inspect, text
 
 load_dotenv()
 
@@ -22,12 +23,25 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 token_cipher = Fernet(os.environ["TOKEN_ENCRYPTION_KEY"].encode())
 
+GITHUB_API = "https://api.github.com"
+REPOS_PER_PAGE = 100
+MAX_REPO_PAGES = 50
+GIT_TOKEN_ENV = "GITHARBOR_GIT_TOKEN"
+# Passed to git with `-c`: credentials come from the environment so the token
+# never shows up in the process list nor in the mirror's git config.
+GIT_CREDENTIAL_HELPER = (
+    rf"""!f() {{ printf 'username=%s\n' 'x-access-token'; """
+    rf"""printf 'password=%s\n' "${GIT_TOKEN_ENV}"; }}; f"""
+)
+
 
 class GitHubAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     github_id = db.Column(db.Integer, unique=True, nullable=False)
     login = db.Column(db.String(255), nullable=False)
     encrypted_access_token = db.Column(db.Text, nullable=False)
+    # Scopes granted by the user during the Device Flow, e.g. "repo,read:user".
+    scope = db.Column(db.Text, nullable=True, default="")
 
 class MirroredRepository(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,6 +53,7 @@ class MirroredRepository(db.Model):
     )
     full_name = db.Column(db.String(255), nullable=False)
     clone_url = db.Column(db.String(500), nullable=False)
+    private = db.Column(db.Boolean, nullable=False, default=False)
     enabled = db.Column(db.Boolean, nullable=False, default=True)
     __table_args__ = (
         db.UniqueConstraint(
@@ -58,8 +73,77 @@ class DeviceAuthorization(db.Model):
     interval = db.Column(db.Integer, nullable=False)
 
 
+def ensure_schema():
+    """Add columns introduced after the tables were first created."""
+
+    added_columns = {
+        "git_hub_account": {"scope": "scope TEXT"},
+        "mirrored_repository": {"private": "private BOOLEAN NOT NULL DEFAULT 0"},
+    }
+
+    inspector = inspect(db.engine)
+    existing_tables = set(inspector.get_table_names())
+
+    for table, columns in added_columns.items():
+        if table not in existing_tables:
+            continue
+        existing_columns = {column["name"] for column in inspector.get_columns(table)}
+        for name, definition in columns.items():
+            if name not in existing_columns:
+                db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {definition}"))
+
+    db.session.commit()
+
+
 with app.app_context():
     db.create_all()
+    ensure_schema()
+
+
+def account_token(account):
+    """Decrypt the OAuth access token stored for an account."""
+
+    return token_cipher.decrypt(account.encrypted_access_token.encode()).decode()
+
+
+def github_headers(access_token):
+    return {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+    }
+
+
+def account_has_private_scope(account):
+    """True when the granted scopes allow reading private repositories."""
+
+    granted = (account.scope or "").split(",")
+    return any(scope.strip() == "repo" for scope in granted)
+
+
+def fetch_user_repos(access_token):
+    """List every repository the token can see, following pagination."""
+
+    repositories = []
+
+    for page in range(1, MAX_REPO_PAGES + 1):
+        response = requests.get(
+            f"{GITHUB_API}/user/repos",
+            headers=github_headers(access_token),
+            params={
+                "affiliation": "owner,collaborator,organization_member",
+                "per_page": REPOS_PER_PAGE,
+                "page": page,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        batch = response.json()
+        repositories.extend(batch)
+
+        if len(batch) < REPOS_PER_PAGE:
+            break
+
+    return repositories
 
 @app.route("/", methods=["GET"])
 def landing():
@@ -144,12 +228,10 @@ def github_oauth_status():
         return jsonify(status="failed", error=token_data["error"]), 400
 
     access_token = token_data["access_token"]
+    granted_scope = token_data.get("scope", "")
     user_response = requests.get(
         "https://api.github.com/user",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {access_token}",
-        },
+        headers=github_headers(access_token),
         timeout=10,
     )
     user_response.raise_for_status()
@@ -163,11 +245,13 @@ def github_oauth_status():
             github_id=github_user["id"],
             login=github_user["login"],
             encrypted_access_token=encrypted_access_token,
+            scope=granted_scope,
         )
         db.session.add(account)
     else:
         account.login = github_user["login"]
         account.encrypted_access_token = encrypted_access_token
+        account.scope = granted_scope
 
     db.session.delete(authorization)
     db.session.commit()
@@ -192,21 +276,15 @@ def repository():
         session.clear()
         return redirect("/github/oauth")
 
-    access_token = token_cipher.decrypt(account.encrypted_access_token.encode()).decode()
-    response = requests.get(
-        "https://api.github.com/user/repos",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {access_token}",
-        },
-        params={
-            "affiliation": "owner,collaborator,organization_member",
-            "per_page": 100,
-        },
-        timeout=10,
-    )
-    response.raise_for_status()
-    repos_data = response.json()
+    access_token = account_token(account)
+    try:
+        repos_data = fetch_user_repos(access_token)
+    except requests.HTTPError as error:
+        # The token is no longer valid: start a fresh Device Flow.
+        if error.response is not None and error.response.status_code == 401:
+            session.clear()
+            return redirect("/github/oauth")
+        raise
 
     repositories = [
         {
@@ -246,12 +324,14 @@ def repository():
                         github_account_id = account.id,
                         full_name = repo["full_name"],
                         clone_url = repo["clone_url"],
+                        private = repo.get("private", False),
                         enabled = True,
                     )
                     db.session.add(saved_repo)
                 else:
                     saved_repo.full_name = repo["full_name"]
                     saved_repo.clone_url = repo["clone_url"]
+                    saved_repo.private = repo.get("private", False)
                     saved_repo.enabled = True
 
             elif saved_repo is not None:
@@ -260,7 +340,12 @@ def repository():
         db.session.commit()
         return redirect(url_for("repository"))
 
-    return render_template("repository.html", repositories=repositories, protected_repository_ids = protected_repository_ids)
+    return render_template(
+        "repository.html",
+        repositories=repositories,
+        protected_repository_ids = protected_repository_ids,
+        private_scope_ok = account_has_private_scope(account),
+    )
 
 @app.route("/protect", methods=["GET"])
 def protect():
@@ -330,27 +415,72 @@ def connect_new_account():
 @app.cli.command("run_backups")
 def run_backups():
     repositories = MirroredRepository.query.filter_by(enabled=True).all()
+    failures = []
 
     for repository in repositories:
         click.echo(f"Backing up {repository.full_name}")
+
+        account = db.session.get(GitHubAccount, repository.github_account_id)
+        if account is None:
+            click.echo("  Skipped: the linked GitHub account no longer exists.")
+            failures.append(repository.full_name)
+            continue
+
+        if repository.private and not account_has_private_scope(account):
+            click.echo(
+                "  Skipped: private repository, but the account token was not "
+                f"granted the 'repo' scope (granted: {account.scope or 'none'})."
+            )
+            failures.append(repository.full_name)
+            continue
+
         mirror_path = (
             Path("data/mirrors")
             / str(repository.github_account_id)
             / f"{repository.github_repository_id}.git"
         )
-        if mirror_path.is_dir():
-            print("Repo already cloned updating...")
-            subprocess.run(
-                ["git", "-C", str(mirror_path), "remote", "update", "--prune"],
-                check=True,
-            )
-        else:
-            print("Repo doesn't found cloning it...")
-            mirror_path.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(
-                ["git", "clone", "--mirror", repository.clone_url, str(mirror_path)],
-                check=True,
-            )
+        try:
+            if mirror_path.is_dir():
+                print("Repo already cloned updating...")
+                run_git(["-C", str(mirror_path), "remote", "update", "--prune"], account)
+            else:
+                print("Repo doesn't found cloning it...")
+                mirror_path.parent.mkdir(parents=True, exist_ok=True)
+                run_git(
+                    ["clone", "--mirror", repository.clone_url, str(mirror_path)],
+                    account,
+                )
+        except subprocess.CalledProcessError as error:
+            click.echo(f"  Backup failed (git exit code {error.returncode}).")
+            failures.append(repository.full_name)
+
+    if failures:
+        raise click.ClickException(
+            f"{len(failures)} backup(s) failed: {', '.join(failures)}"
+        )
+
+
+def run_git(arguments, account):
+    """Run a git command with the account's OAuth token as credentials."""
+
+    environment = os.environ.copy()
+    environment[GIT_TOKEN_ENV] = account_token(account)
+    environment["GIT_TERMINAL_PROMPT"] = "0"
+
+    subprocess.run(
+        [
+            "git",
+            # Reset the helper list so only ours is used: no credential is
+            # written to a keyring and no stale credential overrides the token.
+            "-c",
+            "credential.helper=",
+            "-c",
+            f"credential.helper={GIT_CREDENTIAL_HELPER}",
+            *arguments,
+        ],
+        check=True,
+        env=environment,
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=1024)
