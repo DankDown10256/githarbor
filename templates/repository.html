@@ -48,6 +48,9 @@
     .connection-state { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; color: #3fb950; font-size: 13px; white-space: nowrap; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 9px rgba(63, 185, 80, .7); }
 
+    .scope-warning { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 28px; padding: 14px 16px; border: 1px solid rgba(210, 153, 34, .55); border-radius: 8px; background: rgba(210, 153, 34, .1); color: #e3b341; font-size: 13px; line-height: 1.55; }
+    .scope-warning a { color: var(--blue); text-decoration: underline; }
+
     .vault { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--surface); box-shadow: 0 20px 50px rgba(0, 0, 0, .24); }
     .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); }
     .filters { display: flex; flex: 1; align-items: center; gap: 10px; }
@@ -133,6 +136,18 @@
       </div>
       <div class="connection-state"><span class="status-dot"></span> GitHub connected</div>
     </section>
+
+    {% if not private_scope_ok %}
+      <div class="scope-warning" role="alert">
+        <span aria-hidden="true">⚠</span>
+        <span>
+          The connected account was not granted the <strong>repo</strong> scope, so private
+          repositories can neither be listed nor mirrored.
+          <a href="/github/oauth">Reconnect your GitHub account</a> and approve the requested
+          permissions to enable private repository backups.
+        </span>
+      </div>
+    {% endif %}
 
     <form class="vault" method="post" action="/repository">
       <div class="toolbar">

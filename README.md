@@ -7,10 +7,11 @@ GitHarbor is a self-hosted GitHub repository backup tool. It uses GitHub's Devic
 - GitHub authentication with OAuth Device Flow;
 - encrypted storage of GitHub access tokens in a local SQLite database;
 - repository selection through the web interface;
-- full Git mirrors for selected public repositories;
+- full Git mirrors for selected public and private repositories;
+- private repository access through the OAuth App token, passed to git via an
+  ephemeral credential helper (the token is never written to the mirrors nor
+  exposed in the process list);
 - optional daily backups through a systemd timer.
-
-Private repository mirroring is not implemented yet.
 
 ## Requirements
 
